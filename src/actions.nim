@@ -26,24 +26,22 @@ proc viewAction*(sessions: seq[Session]) =
       # Print Window
       stdout.write(&"  {connector}")
 
-      styledWriteLine(stdout, fgGreen, styleBright, getWindowName(window, j), resetStyle)
+      styledWrite(stdout, fgGreen, styleBright, getWindowName(window, j), resetStyle)
 
       case window.panel.kind:
         of PanelKind.single:
+          echo ""
           # Print Window Details (Path/Cmd)
           if window.panel.path.isSome:
             echo &"  {pipe}  path: {window.panel.path.get()}"
           if window.panel.cmd.isSome:
             echo &"  {pipe}  cmd:  {window.panel.cmd.get()}"
-
-          if not isLastWindow:
-            echo &"  {pipe}"
-        of PanelKind.horizontal:
-          echo "not implemented visualization for horizontal panel yet"
-          quit(1)
         of PanelKind.vertical:
-          echo "not implemented visualization for vertical panel yet"
-          quit(1)
+          echo " *V"
+        of PanelKind.horizontal:
+          echo " *H"
+      if not isLastWindow:
+        echo &"  {pipe}"
 
 proc upAction*(sessions: seq[Session]) =
   for i, session in sessions.pairs:
@@ -103,11 +101,11 @@ proc upAction*(sessions: seq[Session]) =
           if result != 0:
             echo &"""Failed to clear history for window {windowName} in session {sessionName} with exit code {result}"""
             continue
-        of PanelKind.horizontal:
-          echo "not implemented creation for horizontal panel yet"
-          quit(1)
         of PanelKind.vertical:
           echo "not implemented creation for vertical panel yet"
+          quit(1)
+        of PanelKind.horizontal:
+          echo "not implemented creation for horizontal panel yet"
           quit(1)
 
 proc downAction*(sessions: seq[Session]) =

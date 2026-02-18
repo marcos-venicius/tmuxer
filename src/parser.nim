@@ -115,6 +115,80 @@ proc parseStringProperty(): string =
   
   return parseString()
 
+proc parseVpanelProperty(): Panel =
+  cleanUp()
+
+  if isEmpty():
+    logError("unexpected end of file while parsing vpanel")
+
+  expectChar(content[cursor], '{')
+
+  incCursor()
+
+  cleanUp()
+
+  if isEmpty():
+    logError("unexpected end of file while parsing vpanel")
+
+  var left = Panel()
+  var right = Panel()
+
+  while not isEmpty():
+    cleanUp()
+
+    if isEmpty():
+      logError("unexpected end of file while parsing vpanel")
+
+    bot = cursor
+
+    if content[cursor] == '}':
+      break
+
+  incCursor()
+  
+  return Panel(
+    kind: PanelKind.vertical,
+    left: left,
+    right: right
+  )
+
+proc parseHpanelProperty(): Panel =
+  cleanUp()
+
+  if isEmpty():
+    logError("unexpected end of file while parsing hpanel")
+
+  expectChar(content[cursor], '{')
+
+  incCursor()
+
+  cleanUp()
+
+  if isEmpty():
+    logError("unexpected end of file while parsing hpanel")
+
+  var top = Panel()
+  var bottom = Panel()
+
+  while not isEmpty():
+    cleanUp()
+
+    if isEmpty():
+      logError("unexpected end of file while parsing hpanel")
+
+    bot = cursor
+
+    if content[cursor] == '}':
+      break
+
+  incCursor()
+  
+  return Panel(
+    kind: PanelKind.horizontal,
+    top: top,
+    bottom: bottom
+  )
+
 
 proc parseWindow(): Window =
   cleanUp()
@@ -131,6 +205,8 @@ proc parseWindow(): Window =
   var name: Option[string] = none(string)
   var path: Option[string] = none(string)
   var cmd: Option[string] = none(string)
+  var vpanel: Option[Panel] = none(Panel)
+  var hpanel: Option[Panel] = none(Panel)
 
   while not isEmpty():
     cleanUp()
@@ -159,18 +235,38 @@ proc parseWindow(): Window =
         path = some(parseStringProperty())
       of "cmd":
         cmd = some(parseStringProperty())
+      of "vpanel":
+        if path.isSome or cmd.isSome:
+          logError("you cannot define a vertical panel and a single panel at the same time in the same window")
+        elif hpanel.isSome:
+          logError("you cannot define a vertical panel and a horizontal panel at the same time in the same window")
+        
+        vpanel = some(parseVpanelProperty())
+      of "hpanel":
+        if path.isSome or cmd.isSome:
+          logError("you cannot define a vertical panel and a single panel at the same time in the same window")
+        elif vpanel.isSome:
+          logError("you cannot define a horizontal panel and a vertical panel at the same time in the same window")
+        
+        hpanel = some(parseHpanelProperty())
       else:
         logError(&"was expecting symbol 'name', 'path' or 'cmd' but got unexpected symbol '{symbol.get()}'")
 
   incCursor()
 
-  let singlePanel = Panel(
-    kind: PanelKind.single,
-    path: path,
-    cmd: cmd
-  )
+  var panel: Panel =
+    if vpanel.isSome:
+      vpanel.get()
+    elif hpanel.isSome:
+      hpanel.get()
+    else:
+      Panel(
+        kind: PanelKind.single,
+        path: path,
+        cmd: cmd
+      )
 
-  return Window(name: name, panel: singlePanel)
+  return Window(name: name, panel: panel)
 
 proc parseSession() =
   cleanUp()
