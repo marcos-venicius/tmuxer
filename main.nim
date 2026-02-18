@@ -1,234 +1,58 @@
-import std/options, std/strformat
+import std/options
+import std/strformat
+# locals
+import parser
+import arggetter
+import configgetter
+import actions
 
-type
-  Window = object
-    name: Option[string] = none(string)
-    path: Option[string] = none(string)
-    cmd: Option[string] = none(string)
+let programName = shift().get()
+var action: Option[string] = none(string)
 
-type
-  Session = object
-    name: Option[string] = none(string)
-    windows: seq[Window] = @[]
+proc showHelp(withError: bool) =
+  stderr.writeLine(&"Usage: {programName} [options] <action>")
+  stderr.writeLine("Actions:")
+  stderr.writeLine("  up          - Start tmux sessions as defined in the config file")
+  stderr.writeLine("  down        - Stop tmux sessions as defined in the config file")
+  stderr.writeLine("  view        - Print the parsed configuration to the console")
+  stderr.writeLine("Options:")
+  stderr.writeLine("  -h, --help  - Show this help message")
+  quit(if withError: 1 else: 0)
 
-let content = readFile("./config.txr")
+while true:
+  let arg = shift()
 
-var sessions: seq[Session] = @[]
-
-var cursor: Natural = 0
-var bot: Natural = 0
-let size = content.len
-
-proc expectChar(c: char, b: char) =
-  if c != b:
-    stderr.writeLine(&"""expected "{c}" but got "{b}" at position {cursor}""")
-    quit(1)
-
-proc isEmpty(): bool =
-  return cursor >= size
-
-proc isWhitespace(c: char): bool =
-  return c in " \n\t"
-
-proc isComment(c: char): bool =
-  return c == '#'
-
-proc isSymbol(c: char):  bool =
-  return c >= 'a' and c <= 'z'
-
-proc parseSymbol(): Option[string] =
-  if isEmpty() or not isSymbol(content[cursor]):
-    return none(string)
-  
-  while isSymbol(content[cursor]):
-    cursor.inc()
-
-  return some(content[bot..<cursor])
-
-proc parseWhitespaces() =
-  while not isEmpty() and isWhitespace(content[cursor]):
-    cursor.inc()
-
-proc parseComments() =
-  if not isEmpty() and isComment(content[cursor]):
-    while not isEmpty() and content[cursor] != '\n':
-      cursor.inc()
-
-proc parseString(): string =
-  if isEmpty():
-    stderr.writeLine("unexpected end of file while parsing string")
-    quit(1)
-
-  expectChar(content[cursor], '"')
-
-  cursor.inc()
-
-  bot = cursor
-
-  while not isEmpty() and content[cursor] != '"':
-    cursor.inc()
-
-  if isEmpty():
-    stderr.writeLine("unexpected end of file while parsing string")
-    quit(1)
-
-  let str = content[bot..<cursor]
-
-  cursor.inc()
-
-  return str
-
-proc cleanUp() =
-  while not isEmpty():
-    if isWhitespace(content[cursor]):
-      parseWhitespaces()
-    elif isComment(content[cursor]):
-      parseComments()
-    else:
-      break
-
-proc parseStringProperty(): string =
-  cleanUp()
-
-  if isEmpty():
-    stderr.writeLine("unexpected end of file while parsing session name")
-    quit(1)
-
-  expectChar(content[cursor], '=')
-
-  cursor.inc()
-
-  cleanUp()
-
-  if isEmpty():
-    stderr.writeLine("unexpected end of file while parsing session name")
-    quit(1)
-
-  bot = cursor
-  
-  return parseString()
-
-
-proc parseWindow(): Window =
-  cleanUp()
-
-  expectChar(content[cursor], '{')
-
-  cursor.inc()
-
-  cleanUp()
-
-  if isEmpty():
-    stderr.writeLine("unexpected end of file while parsing window")
-    quit(1)
-  
-  var name: Option[string] = none(string)
-  var path: Option[string] = none(string)
-  var cmd: Option[string] = none(string)
-
-  while not isEmpty():
-    cleanUp()
-
-    if isEmpty():
-      stderr.writeLine("unexpected end of file while parsing window")
-      quit(1)
-
-    bot = cursor
-
-    if content[cursor] == '}':
-      break
-
-    let symbol = parseSymbol()
-
-    if symbol.isNone:
-      stderr.writeLine(&"""unexpected token "{content[cursor]}" at position {cursor}. expected 'name', 'path' or 'cmd'""")
-      quit(1)
-   
-    case symbol.get():
-      of "name":
-        name = some(parseStringProperty())
-      of "path":
-        path = some(parseStringProperty())
-      of "cmd":
-        cmd = some(parseStringProperty())
-      else:
-        stderr.writeLine(&"""unexpected symbol "{symbol.get()}" at position {bot}. expected 'name', 'path' or 'cmd'""")
-        quit(1)
-
-  cursor.inc()
-
-  return Window(name: name, path: path, cmd: cmd)
-
-proc parseSession() =
-  cleanUp()
-
-  expectChar(content[cursor], '{')
-
-  cursor.inc()
-
-  cleanUp()
-
-  if isEmpty():
-    stderr.writeLine("unexpected end of file while parsing session")
-    quit(1)
-  
-
-  var name: Option[string] = none(string)
-  var windows: seq[Window] = @[]
-
-  while not isEmpty():
-    cleanUp()
-
-    if isEmpty():
-      stderr.writeLine("unexpected end of file while parsing session")
-      quit(1)
-
-    bot = cursor
-
-    if content[cursor] == '}':
-      break
-
-    let symbol = parseSymbol()
-
-    if symbol.isNone:
-      stderr.writeLine(&"""unexpected token "{content[cursor]}" at position {cursor}. expected 'name' or 'window'""")
-      quit(1)
-   
-    case symbol.get():
-      of "name":
-        name = some(parseStringProperty())
-      of "window":
-        windows.add parseWindow()
-      else:
-        stderr.writeLine(&"""unexpected symbol "{symbol.get()}" at position {bot}. expected 'name' or 'window'""")
-        quit(1)
-  
-  let session = Session(name: name, windows: windows)
-
-  sessions.add session
-
-  cursor.inc()
-
-
-while not isEmpty():
-  cleanUp()
-  
-  if isEmpty():
+  if arg.isNone:
     break
 
-  bot = cursor
+  let value = arg.get()
 
-  let symbol = parseSymbol()
-
-  if symbol.isSome:
-    case symbol.get():
-      of "session":
-        parseSession()
-      else:
-        stderr.writeLine(&"""unexpected symbol "{symbol.get()}" at position {bot}. expected 'session'""")
+  case value:
+    of "--help", "-h":
+      showHelp(false)
+    of "up", "down", "view":
+      if action.isSome:
+        stderr.writeLine("multiple actions specified. only one action can be performed at a time")
         quit(1)
-  else:
-    stderr.writeLine(&"""unexpected token "{content[cursor]}" at position {cursor}. expected 'session'""")
-    quit(1)
+      action = some(value)
+    else:
+      stderr.writeLine(&"""unexpected argument "{value}". expected 'up', "down', or 'view'""")
+      quit(1)
 
-  cursor.inc()
+if action.isNone:
+  showHelp(true)
+
+let configFilePath = getConfigFilePath()
+
+if configFilePath.isNone:
+  stderr.writeLine("no config file found. expected a .tmuxer.txr file in the current directory or any parent directory")
+  quit(1)
+
+let sessions = parseConfigFile(configFilePath.get())
+
+case action.get():
+  of "view":
+    viewAction(sessions)
+  else:
+    stderr.writeLine(&"""unexpected action "{action.get()}". expected 'up', "down', or 'view'""")
+    quit(1)
