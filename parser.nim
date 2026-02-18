@@ -1,4 +1,4 @@
-import std/options, std/strformat
+import std/options, std/strformat, std/strutils
 
 type
   Window = object
@@ -145,7 +145,12 @@ proc parseWindow(): Window =
    
     case symbol.get():
       of "name":
-        name = some(parseStringProperty())
+        let value = parseStringProperty()
+        name = some(value)
+
+        if value.contains(".") or value.contains(":"):
+          stderr.writeLine(&"""window name "{value}" cannot contain "." or ":" characters""")
+          quit(1)
       of "path":
         path = some(parseStringProperty())
       of "cmd":
@@ -195,7 +200,12 @@ proc parseSession() =
    
     case symbol.get():
       of "name":
-        name = some(parseStringProperty())
+        let value = parseStringProperty()
+        name = some(value)
+
+        if value.contains(".") or value.contains(":"):
+          stderr.writeLine(&"""session name "{value}" cannot contain "." or ":" characters""")
+          quit(1)
       of "window":
         windows.add parseWindow()
       else:

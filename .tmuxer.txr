@@ -1,9 +1,3 @@
-session {}
-
-session {
-  name = " example session "
-}
-
 session {
   name = "network"
 
@@ -18,13 +12,13 @@ session {
   name = "packages"
 
   window {
-    name ="shared.database"
+    name ="shared-database"
     path = "~/projects/cadmus/logai/packages/Shared.Database/Shared.Database/"
     cmd = "vi ."
   }
 
   window {
-    name = "shared.utilities"
+    name = "shared-utilities"
     path = "~/projects/cadmus/logai/packages/Shared.Utilities/Shared.Utilities/"
     cmd = "vi ."
   }
@@ -68,8 +62,6 @@ session {
   name = "generic"
 
   window {
-    path = "~/tmp"
+    path = "/tmp"
   }
 }
-
-# vim: set ft=toml :

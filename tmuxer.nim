@@ -51,6 +51,8 @@ if configFilePath.isNone:
 let sessions = parseConfigFile(configFilePath.get())
 
 case action.get():
+  of "up":
+    upAction(sessions)
   of "view":
     viewAction(sessions)
   else:
