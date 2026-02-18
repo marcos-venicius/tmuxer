@@ -28,14 +28,22 @@ proc viewAction*(sessions: seq[Session]) =
 
       styledWriteLine(stdout, fgGreen, styleBright, getWindowName(window, j), resetStyle)
 
-      # Print Window Details (Path/Cmd)
-      if window.path.isSome:
-        echo &"  {pipe}  path: {window.path.get()}"
-      if window.cmd.isSome:
-        echo &"  {pipe}  cmd:  {window.cmd.get()}"
+      case window.panel.kind:
+        of PanelKind.single:
+          # Print Window Details (Path/Cmd)
+          if window.panel.path.isSome:
+            echo &"  {pipe}  path: {window.panel.path.get()}"
+          if window.panel.cmd.isSome:
+            echo &"  {pipe}  cmd:  {window.panel.cmd.get()}"
 
-      if not isLastWindow:
-        echo &"  {pipe}"
+          if not isLastWindow:
+            echo &"  {pipe}"
+        of PanelKind.horizontal:
+          echo "not implemented visualization for horizontal panel yet"
+          quit(1)
+        of PanelKind.vertical:
+          echo "not implemented visualization for vertical panel yet"
+          quit(1)
 
 proc upAction*(sessions: seq[Session]) =
   for i, session in sessions.pairs:
@@ -68,31 +76,39 @@ proc upAction*(sessions: seq[Session]) =
           echo &"""Failed to create window {windowName} in session {sessionName} with exit code {result}"""
           continue
       
-      if window.path.isSome:
-        result = sendKeys(sessionName, windowName, &"cd {window.path.get()}")
+      case window.panel.kind:
+        of PanelKind.single: # extract this code to a proc
+          if window.panel.path.isSome:
+            result = sendKeys(sessionName, windowName, &"cd {window.panel.path.get()}")
 
-        if result != 0:
-          echo &"""Failed to set path for window {windowName} in session {sessionName} with exit code {result}"""
-          continue
-      
-      if window.cmd.isSome:
-        result = sendKeys(sessionName, windowName, window.cmd.get())
+            if result != 0:
+              echo &"""Failed to set path for window {windowName} in session {sessionName} with exit code {result}"""
+              continue
 
-        if result != 0:
-          echo &"""Failed to set cmd for window {windowName} in session {sessionName} with exit code {result}"""
-          continue
+          if window.panel.cmd.isSome:
+            result = sendKeys(sessionName, windowName, window.panel.cmd.get())
 
-      result = sendKeys(sessionName, windowName, "clear")
+            if result != 0:
+              echo &"""Failed to set cmd for window {windowName} in session {sessionName} with exit code {result}"""
+              continue
 
-      if result != 0:
-        echo &"""Failed to clear terminal for window {windowName} in session {sessionName} with exit code {result}"""
-        continue
+          result = sendKeys(sessionName, windowName, "clear")
 
-      result = clearHistory(sessionName, windowName)
+          if result != 0:
+            echo &"""Failed to clear terminal for window {windowName} in session {sessionName} with exit code {result}"""
+            continue
 
-      if result != 0:
-        echo &"""Failed to clear history for window {windowName} in session {sessionName} with exit code {result}"""
-        continue
+          result = clearHistory(sessionName, windowName)
+
+          if result != 0:
+            echo &"""Failed to clear history for window {windowName} in session {sessionName} with exit code {result}"""
+            continue
+        of PanelKind.horizontal:
+          echo "not implemented creation for horizontal panel yet"
+          quit(1)
+        of PanelKind.vertical:
+          echo "not implemented creation for vertical panel yet"
+          quit(1)
 
 proc downAction*(sessions: seq[Session]) =
   for i, session in sessions.pairs:

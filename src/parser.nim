@@ -164,7 +164,13 @@ proc parseWindow(): Window =
 
   incCursor()
 
-  return Window(name: name, path: path, cmd: cmd)
+  let singlePanel = Panel(
+    kind: PanelKind.single,
+    path: path,
+    cmd: cmd
+  )
+
+  return Window(name: name, panel: singlePanel)
 
 proc parseSession() =
   cleanUp()
