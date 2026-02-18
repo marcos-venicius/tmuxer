@@ -247,4 +247,4 @@ proc parseConfigFile(filename: string): seq[Session] =
 
   return sessions
 
-export parseConfigFile, Session
+export parseConfigFile, Session, Window

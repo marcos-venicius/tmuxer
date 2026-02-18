@@ -59,9 +59,11 @@ session {
 }
 
 session {
-  name = "generic"
+  name = "Plataforma v1"
 
   window {
     path = "/tmp"
   }
 }
+
+# vim: set ft=toml :

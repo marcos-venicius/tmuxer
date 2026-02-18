@@ -1,70 +1,88 @@
 import os
 import std/strformat, std/options
-from parser import Session
+from parser import Session, Window
+import tmux
+
+proc getSessionName(session: Session, index: int): string =
+  return session.name.get(&"unamed-{index}")
+
+proc getWindowName(window: Window, index: int): string =
+  return window.name.get(&"unamed-{index}")
 
 proc viewAction(sessions: seq[Session]) =
-  for session in sessions:
-    echo &"""Session: {session.name.get("<unamed>")}"""
-    for window in session.windows:
-      echo &"""  Window: {window.name.get("<unamed>")}"""
+  for i, session in sessions.pairs:
+    echo &"""Session: {getSessionName(session, i)}"""
+    for j, window in session.windows.pairs:
+      echo &"""  Window: {getWindowName(window, j)}"""
       echo &"""    Path: {window.path.get("N/A")}"""
       echo &"""    Cmd: {window.cmd.get("N/A")}"""
 
 proc upAction(sessions: seq[Session]) =
   for i, session in sessions.pairs:
-    let sessionName = session.name.get(&"unamed-{i}")
+    let sessionName = getSessionName(session, i)
 
     echo &"""Creating session: {sessionName}"""
 
-    var result = execShellCmd(&"tmux new-session -d -s {sessionName}")
+    var result = newSession(sessionName)
 
     if result != 0:
       echo &"""Failed to create session {sessionName} with exit code {result}"""
       continue
   
     for j, window in session.windows.pairs:
-      let windowName = window.name.get(&"unamed-{j}")
+      let windowName = getWindowName(window, j)
 
       echo &"""  Creating window: {windowName}"""
 
       if j == 0:
         # the first window is created by default with the session, so we just need to rename it
-        result = execShellCmd(&"tmux rename-window -t {sessionName}:0 {windowName}")
+        result = renameWindow(sessionName, "0", windowName)
 
         if result != 0:
           echo &"""Failed to rename default window to {windowName} in session {sessionName} with exit code {result}"""
           continue
       else:
-        result = execShellCmd(&"tmux new-window -t {sessionName} -n {windowName}")
+        result = newWindow(sessionName, windowName)
 
         if result != 0:
           echo &"""Failed to create window {windowName} in session {sessionName} with exit code {result}"""
           continue
       
       if window.path.isSome:
-        result = execShellCmd(&"""tmux send-keys -t {sessionName}:{windowName}.0 'cd {window.path.get()}' C-m""")
+        result = sendKeys(sessionName, windowName, &"cd {window.path.get()}")
 
         if result != 0:
           echo &"""Failed to set path for window {windowName} in session {sessionName} with exit code {result}"""
           continue
       
       if window.cmd.isSome:
-        result = execShellCmd(&"""tmux send-keys -t {sessionName}:{windowName}.0 '{window.cmd.get()}' C-m""")
+        result = sendKeys(sessionName, windowName, window.cmd.get())
 
         if result != 0:
           echo &"""Failed to set cmd for window {windowName} in session {sessionName} with exit code {result}"""
           continue
 
-      result = execShellCmd(&"""tmux send-keys -t {sessionName}:{windowName}.0 'clear' C-m""")
+      result = sendKeys(sessionName, windowName, "clear")
 
       if result != 0:
         echo &"""Failed to clear terminal for window {windowName} in session {sessionName} with exit code {result}"""
         continue
 
-      result = execShellCmd(&"""tmux clear-history -t {sessionName}:{windowName}.0""")
+      result = clearHistory(sessionName, windowName)
 
       if result != 0:
         echo &"""Failed to clear history for window {windowName} in session {sessionName} with exit code {result}"""
         continue
 
-export viewAction, upAction
+proc downAction(sessions: seq[Session]) =
+  for i, session in sessions.pairs:
+    let sessionName = getSessionName(session, i)
+
+    echo &"""Killing session: {sessionName}"""
+
+    let result = killSession(sessionName)
+
+    if result != 0:
+      echo &"""Failed to kill session {sessionName} with exit code {result}"""
+
+export viewAction, upAction, downAction

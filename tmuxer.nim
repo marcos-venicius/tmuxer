@@ -55,6 +55,8 @@ case action.get():
     upAction(sessions)
   of "view":
     viewAction(sessions)
+  of "down":
+    downAction(sessions)
   else:
     stderr.writeLine(&"""unexpected action "{action.get()}". expected 'up', "down', or 'view'""")
     quit(1)
