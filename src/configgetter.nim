@@ -2,7 +2,7 @@ import os, std/options
 
 const configFileName = ".tmuxer.txr"
 
-proc getConfigFilePath(): Option[string] =
+proc getConfigFilePath*(): Option[string] =
   var dir = getCurrentDir()
 
   let path = joinPath(dir, configFileName)
@@ -24,5 +24,3 @@ proc getConfigFilePath(): Option[string] =
       return some(path)
 
   return none(string)
-
-export getConfigFilePath

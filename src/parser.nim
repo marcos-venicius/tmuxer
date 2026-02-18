@@ -1,27 +1,39 @@
-import std/options, std/strformat, std/strutils
+import std/[options, strformat, strutils, terminal, os]
 
-type
-  Window = object
-    name*: Option[string] = none(string)
-    path*: Option[string] = none(string)
-    cmd*: Option[string] = none(string)
-
-type
-  Session = object
-    name*: Option[string] = none(string)
-    windows*: seq[Window] = @[]
+import types
 
 var sessions: seq[Session] = @[]
 
+var configFileNamePath: string = ""
 var content: string = ""
-var size: Natural = content.len
+var size: Natural = 0
 var bot: Natural = 0
 var cursor: Natural = 0
+var line: Natural = 1
+var col: Natural = 1
+
+proc incCursor() =
+  if content[cursor] == '\n':
+    line.inc()
+    col = 1
+  else:
+    col.inc()
+
+  cursor.inc()
+
+proc logError(msg: string) =
+  # Using the 'terminal' module is cleaner than raw ANSI escape codes
+  # It automatically handles cases where the user's terminal doesn't support color
+  let errorHeader = &"{configFileNamePath}:{line}:{col}: "
+  
+  stderr.write(errorHeader)
+  styledWriteLine(stderr, fgRed, styleBright, "error: ", resetStyle, msg)
+  
+  quit(1)
 
 proc expectChar(c: char, b: char) =
   if c != b:
-    stderr.writeLine(&"""expected "{c}" but got "{b}" at position {cursor}""")
-    quit(1)
+    logError(&"expected '{b}' but got '{c}'")
 
 proc isEmpty(): bool =
   return cursor >= size
@@ -40,40 +52,38 @@ proc parseSymbol(): Option[string] =
     return none(string)
   
   while isSymbol(content[cursor]):
-    cursor.inc()
+    incCursor()
 
   return some(content[bot..<cursor])
 
 proc parseWhitespaces() =
   while not isEmpty() and isWhitespace(content[cursor]):
-    cursor.inc()
+    incCursor()
 
 proc parseComments() =
   if not isEmpty() and isComment(content[cursor]):
     while not isEmpty() and content[cursor] != '\n':
-      cursor.inc()
+      incCursor()
 
 proc parseString(): string =
   if isEmpty():
-    stderr.writeLine("unexpected end of file while parsing string")
-    quit(1)
+    logError("unexpected end of file while parsing string")
 
   expectChar(content[cursor], '"')
 
-  cursor.inc()
+  incCursor()
 
   bot = cursor
 
   while not isEmpty() and content[cursor] != '"':
-    cursor.inc()
+    incCursor()
 
   if isEmpty():
-    stderr.writeLine("unexpected end of file while parsing string")
-    quit(1)
+    logError("unexpected end of file while parsing string")
 
   let str = content[bot..<cursor]
 
-  cursor.inc()
+  incCursor()
 
   return str
 
@@ -90,18 +100,16 @@ proc parseStringProperty(): string =
   cleanUp()
 
   if isEmpty():
-    stderr.writeLine("unexpected end of file while parsing session name")
-    quit(1)
+    logError("unexpected end of file while parsing session name")
 
   expectChar(content[cursor], '=')
 
-  cursor.inc()
+  incCursor()
 
   cleanUp()
 
   if isEmpty():
-    stderr.writeLine("unexpected end of file while parsing session name")
-    quit(1)
+    logError("unexpected end of file while parsing session name")
 
   bot = cursor
   
@@ -113,13 +121,12 @@ proc parseWindow(): Window =
 
   expectChar(content[cursor], '{')
 
-  cursor.inc()
+  incCursor()
 
   cleanUp()
 
   if isEmpty():
-    stderr.writeLine("unexpected end of file while parsing window")
-    quit(1)
+    logError("unexpected end of file while parsing window")
   
   var name: Option[string] = none(string)
   var path: Option[string] = none(string)
@@ -129,8 +136,7 @@ proc parseWindow(): Window =
     cleanUp()
 
     if isEmpty():
-      stderr.writeLine("unexpected end of file while parsing window")
-      quit(1)
+      logError("unexpected end of file while parsing window")
 
     bot = cursor
 
@@ -140,8 +146,7 @@ proc parseWindow(): Window =
     let symbol = parseSymbol()
 
     if symbol.isNone:
-      stderr.writeLine(&"""unexpected token "{content[cursor]}" at position {cursor}. expected 'name', 'path' or 'cmd'""")
-      quit(1)
+      logError(&"was expecting symbol 'name', 'path' or 'cmd' but got unexpected character '{content[cursor]}'")
    
     case symbol.get():
       of "name":
@@ -149,17 +154,15 @@ proc parseWindow(): Window =
         name = some(value)
 
         if value.contains(".") or value.contains(":"):
-          stderr.writeLine(&"""window name "{value}" cannot contain "." or ":" characters""")
-          quit(1)
+          logError(&"window name '{value}' cannot contain '.' or ':' characters")
       of "path":
         path = some(parseStringProperty())
       of "cmd":
         cmd = some(parseStringProperty())
       else:
-        stderr.writeLine(&"""unexpected symbol "{symbol.get()}" at position {bot}. expected 'name', 'path' or 'cmd'""")
-        quit(1)
+        logError(&"was expecting symbol 'name', 'path' or 'cmd' but got unexpected symbol '{symbol.get()}'")
 
-  cursor.inc()
+  incCursor()
 
   return Window(name: name, path: path, cmd: cmd)
 
@@ -168,14 +171,12 @@ proc parseSession() =
 
   expectChar(content[cursor], '{')
 
-  cursor.inc()
+  incCursor()
 
   cleanUp()
 
   if isEmpty():
-    stderr.writeLine("unexpected end of file while parsing session")
-    quit(1)
-  
+    logError("unexpected end of file while parsing session")
 
   var name: Option[string] = none(string)
   var windows: seq[Window] = @[]
@@ -184,8 +185,7 @@ proc parseSession() =
     cleanUp()
 
     if isEmpty():
-      stderr.writeLine("unexpected end of file while parsing session")
-      quit(1)
+      logError("unexpected end of file while parsing session")
 
     bot = cursor
 
@@ -195,8 +195,7 @@ proc parseSession() =
     let symbol = parseSymbol()
 
     if symbol.isNone:
-      stderr.writeLine(&"""unexpected token "{content[cursor]}" at position {cursor}. expected 'name' or 'window'""")
-      quit(1)
+      logError(&"was expecting symbol 'name' or 'window' but got unexpected character '{content[cursor]}'")
    
     case symbol.get():
       of "name":
@@ -204,22 +203,22 @@ proc parseSession() =
         name = some(value)
 
         if value.contains(".") or value.contains(":"):
-          stderr.writeLine(&"""session name "{value}" cannot contain "." or ":" characters""")
-          quit(1)
+          logError(&"session name '{value}' cannot contain '.' or ':' characters")
       of "window":
         windows.add parseWindow()
       else:
-        stderr.writeLine(&"""unexpected symbol "{symbol.get()}" at position {bot}. expected 'name' or 'window'""")
-        quit(1)
+        logError(&"was expecting symbol 'name' or 'window' but got unexpected symbol '{symbol.get()}'")
   
   let session = Session(name: name, windows: windows)
 
   sessions.add session
 
-  cursor.inc()
+  incCursor()
 
-proc parseConfigFile(filename: string): seq[Session] =
-  content = readFile(filename)
+proc parseConfigFile*(filepath: string): seq[Session] =
+  configFileNamePath = relativePath(filepath, ".")
+
+  content = readFile(filepath)
   size = content.len
 
   while not isEmpty():
@@ -237,14 +236,10 @@ proc parseConfigFile(filename: string): seq[Session] =
         of "session":
           parseSession()
         else:
-          stderr.writeLine(&"""unexpected symbol "{symbol.get()}" at position {bot}. expected 'session'""")
-          quit(1)
+          logError(&"was expecting symbol 'session' but got unexpected symbol '{symbol.get()}'")
     else:
-      stderr.writeLine(&"""unexpected token "{content[cursor]}" at position {cursor}. expected 'session'""")
-      quit(1)
+      logError(&"was expecting symbol 'session' but got unexpected character '{content[cursor]}'")
 
-    cursor.inc()
+    incCursor()
 
   return sessions
-
-export parseConfigFile, Session, Window

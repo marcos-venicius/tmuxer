@@ -1,7 +1,6 @@
-import os
 import std/strformat, std/options
-from parser import Session, Window
 import tmux
+import types
 
 proc getSessionName(session: Session, index: int): string =
   return session.name.get(&"unamed-{index}")
@@ -9,7 +8,7 @@ proc getSessionName(session: Session, index: int): string =
 proc getWindowName(window: Window, index: int): string =
   return window.name.get(&"unamed-{index}")
 
-proc viewAction(sessions: seq[Session]) =
+proc viewAction*(sessions: seq[Session]) =
   for i, session in sessions.pairs:
     echo &"""Session: {getSessionName(session, i)}"""
     for j, window in session.windows.pairs:
@@ -17,7 +16,7 @@ proc viewAction(sessions: seq[Session]) =
       echo &"""    Path: {window.path.get("N/A")}"""
       echo &"""    Cmd: {window.cmd.get("N/A")}"""
 
-proc upAction(sessions: seq[Session]) =
+proc upAction*(sessions: seq[Session]) =
   for i, session in sessions.pairs:
     let sessionName = getSessionName(session, i)
 
@@ -74,7 +73,7 @@ proc upAction(sessions: seq[Session]) =
         echo &"""Failed to clear history for window {windowName} in session {sessionName} with exit code {result}"""
         continue
 
-proc downAction(sessions: seq[Session]) =
+proc downAction*(sessions: seq[Session]) =
   for i, session in sessions.pairs:
     let sessionName = getSessionName(session, i)
 
@@ -84,5 +83,3 @@ proc downAction(sessions: seq[Session]) =
 
     if result != 0:
       echo &"""Failed to kill session {sessionName} with exit code {result}"""
-
-export viewAction, upAction, downAction
