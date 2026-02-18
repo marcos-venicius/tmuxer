@@ -1,71 +1,11 @@
 # It's a fake example file. It'll not work on your machine. If you want to make exactly this work, you'll need to create those paths and have vi installed
 
 session {
-  name = "network"
+  name = "open source"
 
   window {
-    name = "vpn"
-    path = "~/.vpn"
-    cmd = "./connect"
-  }
-}
-
-session {
-  name = "packages"
-
-  window {
-    name ="shared-database"
-    path = "~/projects/cadmus/logai/packages/Shared.Database/Shared.Database/"
-    cmd = "vi ."
-  }
-
-  window {
-    name = "shared-utilities"
-    path = "~/projects/cadmus/logai/packages/Shared.Utilities/Shared.Utilities/"
+    name = "tmuxer"
+    path = "~/tools/tmuxer/"
     cmd = "vi ."
   }
 }
-
-session {
-  name = "editors"
-
-  window {
-    name = "ui"
-    path = "~/projects/cadmus/logai/ui/"
-  }
-
-  window {
-    name = "crons"
-    path = "~/projects/cadmus/logai/crons/"
-  }
-
-  window {
-    name = "booking"
-    path = "~/projects/cadmus/logai/apis/Booking/Booking/"
-  }
-
-  window {
-    name = "tracking"
-    path = "~/projects/cadmus/logai/apis/Tracking/Tracking/"
-  }
-
-  window {
-    name = "integrator"
-    path = "~/projects/cadmus/logai/apis/Integrator/Integrator/"
-  }
-
-  window {
-    name = "report-services"
-    path = "~/projects/cadmus/logai/apis/Report-Services/Report-Services/"
-  }
-}
-
-session {
-  name = "Plataforma v1"
-
-  window {
-    path = "/tmp"
-  }
-}
-
-# vim: set ft=toml :
