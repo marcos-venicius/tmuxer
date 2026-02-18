@@ -1,85 +1,91 @@
 # It's a fake example file. It'll not work on your machine. If you want to make exactly this work, you'll need to create those paths and have vi installed
 
-# session {
-#   name = "open source"
-# 
-#   window {
-#     name = "tmuxer"
-# 
-#     vpanel {
-#       left {
-#         hpanel {
-#           top {
-#             path = "~/tools/tmuxer/src"
-#             cmd = "vi ."
-#           }
-# 
-#           bottom {
-#             path = "~/tools/tmuxer/examples"
-#             cmd = "../bin/tmuxer view"
-#           }
-#         }
-#       }
-# 
-#       right {
-#         path = "~/tools/tmuxer/src"
-#         cmd = "nim c -o:../bin/tmuxer tmuxer"
-#       }
-#     }
-#   }
-# }
-
 session {
   name = "open source"
 
   window {
-    name = "No panel"
-  }
-
-  window {
-    name = "Single empty panel"
-
-    panel {}
-  }
-
-  window {
-    name = "Single panel"
-
-    panel {
-      path = "/tmp"
-      cmd = "ls -lah"
-    }
-  }
-
-  window {
-    name = "Vertical Empty Split"
-
-    vpanel {}
-  }
-
-  window {
-    name = "Vertical Empty Left and Right"
+    name = "tmuxer"
 
     vpanel {
-      left {}
-      right {}
-    }
-  }
+      left {
+        hpanel {
+          top {
+            panel {
+              path = "~/tools/tmuxer/src"
+              cmd = "vi ."
+            }
+          }
 
-  window {
-    name = "Horizontal Empty Split"
+          bottom {
+            panel {
+              path = "~/tools/tmuxer/examples"
+              cmd = "../bin/tmuxer view"
+            }
+          }
+        }
+      }
 
-    hpanel {}
-  }
-
-  window {
-    name = "Horizontal Empty Top and Bottom"
-
-    hpanel {
-      top {}
-      bottom {}
+      right {
+        panel {
+          path = "~/tools/tmuxer/src"
+          cmd = "nim c -o:../bin/tmuxer tmuxer"
+        }
+      }
     }
   }
 }
+
+# session {
+#   name = "open source"
+# 
+#   window {
+#     name = "No panel"
+#   }
+# 
+#   window {
+#     name = "Single empty panel"
+# 
+#     panel {}
+#   }
+# 
+#   window {
+#     name = "Single panel"
+# 
+#     panel {
+#       path = "/tmp"
+#       cmd = "ls -lah"
+#     }
+#   }
+# 
+#   window {
+#     name = "Vertical Empty Split"
+# 
+#     vpanel {}
+#   }
+# 
+#   window {
+#     name = "Vertical Empty Left and Right"
+# 
+#     vpanel {
+#       left {}
+#       right {}
+#     }
+#   }
+# 
+#   window {
+#     name = "Horizontal Empty Split"
+# 
+#     hpanel {}
+#   }
+# 
+#   window {
+#     name = "Horizontal Empty Top and Bottom"
+# 
+#     hpanel {
+#       top {}
+#       bottom {}
+#     }
+#   }
+# }
 
 # vim: set ft=conf :
