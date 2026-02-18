@@ -22,7 +22,7 @@ If the file is found, than it's used to construct or destruct your tmux setup.
 
 The syntax is pretty simple:
 
-```toml
+```conf
 # defines a session
 session {}
 
@@ -50,7 +50,7 @@ You can define empty windows and empty sessions.
 
 You can define multiple sessions just by placing one bellow another and the same applies to windows.
 
-```toml
+```conf
 session {}
 session {}
 session {}
@@ -85,3 +85,9 @@ Later, I'm gonna store some data about the current state and other stuff so I ca
 - **before updateing the config file, guarantee there is no previous up**
 
 **Also important to note that this tool doesn't watch the tmux, so if you delete/create/update sessions/windows/panels this tool will not be able to handle this**
+
+## Building
+
+```bash
+nimble build
+```

@@ -5,7 +5,28 @@ session {
 
   window {
     name = "tmuxer"
-    path = "~/tools/tmuxer/"
-    cmd = "vi ."
+
+    vpanel {
+      left {
+        hpanel {
+          top {
+            path = "~/tools/tmuxer/src"
+            cmd = "vi ."
+          }
+
+          bottom {
+            path = "~/tools/tmuxer/examples"
+            cmd = "../bin/tmuxer view"
+          }
+        }
+      }
+
+      right {
+        path = "~/tools/tmuxer/src"
+        cmd = "nim c -o:../bin/tmuxer tmuxer"
+      }
+    }
   }
 }
+
+# vim: set ft=conf :
