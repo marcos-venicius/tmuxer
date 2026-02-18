@@ -1,4 +1,4 @@
-import std/strformat, std/options
+import std/[strformat, options, terminal]
 import tmux
 import types
 
@@ -10,11 +10,32 @@ proc getWindowName(window: Window, index: int): string =
 
 proc viewAction*(sessions: seq[Session]) =
   for i, session in sessions.pairs:
-    echo &"""Session: {getSessionName(session, i)}"""
+    # Add a newline between sessions for clarity, but not after the last one
+    if i > 0:
+      echo ""
+
+    # Print Session (Root)
+    styledWriteLine(stdout, fgBlue, styleBright, getSessionName(session, i), resetStyle)
+
     for j, window in session.windows.pairs:
-      echo &"""  Window: {getWindowName(window, j)}"""
-      echo &"""    Path: {window.path.get("N/A")}"""
-      echo &"""    Cmd: {window.cmd.get("N/A")}"""
+      # Check if this is the last window in the session
+      let isLastWindow = j == session.windows.len - 1
+      let connector = if isLastWindow: "└── " else: "├── "
+      let pipe = if isLastWindow: "    " else: "│   "
+
+      # Print Window
+      stdout.write(&"  {connector}")
+
+      styledWriteLine(stdout, fgGreen, styleBright, getWindowName(window, j), resetStyle)
+
+      # Print Window Details (Path/Cmd)
+      if window.path.isSome:
+        echo &"  {pipe}  path: {window.path.get()}"
+      if window.cmd.isSome:
+        echo &"  {pipe}  cmd:  {window.cmd.get()}"
+
+      if not isLastWindow:
+        echo &"  {pipe}"
 
 proc upAction*(sessions: seq[Session]) =
   for i, session in sessions.pairs:
