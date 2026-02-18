@@ -8,40 +8,60 @@ proc getSessionName(session: Session, index: int): string =
 proc getWindowName(window: Window, index: int): string =
   return window.name.get(&"unamed-{index}")
 
+# Helper to draw the panel tree recursively
+proc viewPanel(panel: Panel, prefix: string, isLast: bool) =
+  if panel == nil: return
+
+  # 1. Determine the branch characters
+  let connector = if isLast: "└── " else: "├── "
+  let childPipe = if isLast: "    " else: "│   "
+  
+  # 2. Print the kind of panel
+  stdout.write(&"{prefix}{connector}")
+  case panel.kind:
+    of PanelKind.single:
+      styledWriteLine(stdout, fgCyan, "Panel", resetStyle)
+    of PanelKind.vertical:
+      styledWriteLine(stdout, fgYellow, "Vertical Split", resetStyle)
+    of PanelKind.horizontal:
+      styledWriteLine(stdout, fgMagenta, "Horizontal Split", resetStyle)
+
+  # 3. Print Panel details (Path/Cmd)
+  let nextPrefix = prefix & childPipe
+  if panel.path.isSome:
+    echo &"{nextPrefix}path: {panel.path.get()}"
+  if panel.cmd.isSome:
+    echo &"{nextPrefix}cmd:  {panel.cmd.get()}"
+
+  # 4. Recursively visit children
+  case panel.kind:
+    of PanelKind.vertical:
+      viewPanel(panel.left, nextPrefix, false)
+      viewPanel(panel.right, nextPrefix, true)
+    of PanelKind.horizontal:
+      viewPanel(panel.top, nextPrefix, false)
+      viewPanel(panel.bottom, nextPrefix, true)
+    of PanelKind.single:
+      discard
+
 proc viewAction*(sessions: seq[Session]) =
   for i, session in sessions.pairs:
-    # Add a newline between sessions for clarity, but not after the last one
-    if i > 0:
-      echo ""
+    if i > 0: echo ""
 
-    # Print Session (Root)
+    # Print Session
     styledWriteLine(stdout, fgBlue, styleBright, getSessionName(session, i), resetStyle)
 
     for j, window in session.windows.pairs:
-      # Check if this is the last window in the session
       let isLastWindow = j == session.windows.len - 1
       let connector = if isLastWindow: "└── " else: "├── "
       let pipe = if isLastWindow: "    " else: "│   "
 
       # Print Window
       stdout.write(&"  {connector}")
+      styledWriteLine(stdout, fgGreen, getWindowName(window, j), resetStyle)
 
-      styledWrite(stdout, fgGreen, styleBright, getWindowName(window, j), resetStyle)
-
-      case window.panel.kind:
-        of PanelKind.single:
-          echo ""
-          # Print Window Details (Path/Cmd)
-          if window.panel.path.isSome:
-            echo &"  {pipe}  path: {window.panel.path.get()}"
-          if window.panel.cmd.isSome:
-            echo &"  {pipe}  cmd:  {window.panel.cmd.get()}"
-        of PanelKind.vertical:
-          echo " *V"
-        of PanelKind.horizontal:
-          echo " *H"
-      if not isLastWindow:
-        echo &"  {pipe}"
+      # Print the Panel Tree starting from the window's root panel
+      viewPanel(window.panel, "  " & pipe, true)
 
 proc upAction*(sessions: seq[Session]) =
   for i, session in sessions.pairs:
