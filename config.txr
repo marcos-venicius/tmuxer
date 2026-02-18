@@ -1,0 +1,75 @@
+session {}
+
+session {
+  name = " example session "
+}
+
+session {
+  name = "network"
+
+  window {
+    name = "vpn"
+    path = "~/.vpn"
+    cmd = "./connect"
+  }
+}
+
+session {
+  name = "packages"
+
+  window {
+    name ="shared.database"
+    path = "~/projects/cadmus/logai/packages/Shared.Database/Shared.Database/"
+    cmd = "vi ."
+  }
+
+  window {
+    name = "shared.utilities"
+    path = "~/projects/cadmus/logai/packages/Shared.Utilities/Shared.Utilities/"
+    cmd = "vi ."
+  }
+}
+
+session {
+  name = "editors"
+
+  window {
+    name = "ui"
+    path = "~/projects/cadmus/logai/ui/"
+  }
+
+  window {
+    name = "crons"
+    path = "~/projects/cadmus/logai/crons/"
+  }
+
+  window {
+    name = "booking"
+    path = "~/projects/cadmus/logai/apis/Booking/Booking/"
+  }
+
+  window {
+    name = "tracking"
+    path = "~/projects/cadmus/logai/apis/Tracking/Tracking/"
+  }
+
+  window {
+    name = "integrator"
+    path = "~/projects/cadmus/logai/apis/Integrator/Integrator/"
+  }
+
+  window {
+    name = "report-services"
+    path = "~/projects/cadmus/logai/apis/Report-Services/Report-Services/"
+  }
+}
+
+session {
+  name = "generic"
+
+  window {
+    path = "~/tmp"
+  }
+}
+
+# vim: set ft=toml :
