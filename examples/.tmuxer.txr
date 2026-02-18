@@ -33,10 +33,22 @@ session {
   name = "open source"
 
   window {
+    name = "No panel"
+  }
+
+  window {
+    name = "Single empty panel"
+
+    panel {}
+  }
+
+  window {
     name = "Single panel"
 
-    path = "/tmp"
-    cmd = "ls -lah"
+    panel {
+      path = "/tmp"
+      cmd = "ls -lah"
+    }
   }
 
   window {

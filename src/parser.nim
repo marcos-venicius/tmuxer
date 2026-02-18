@@ -144,6 +144,20 @@ proc parseVpanelProperty(): Panel =
     if content[cursor] == '}':
       break
 
+    let symbol = parseSymbol()
+
+    if symbol.isNone:
+      logError(&"was expecting symbol 'left' or 'right' but got unexpected character '{content[cursor]}'")
+    
+    case symbol.get():
+      of "left":
+        discard
+      of "right":
+        discard
+      else:
+        logError(&"was expecting symbol 'left' or 'right' but got unexpected character '{symbol.get()}'")
+
+
   incCursor()
   
   return Panel(
@@ -189,6 +203,79 @@ proc parseHpanelProperty(): Panel =
     bottom: bottom
   )
 
+proc parsePanelProperty(): Panel =
+  cleanUp()
+
+  expectChar(content[cursor], '{')
+
+  incCursor()
+
+  var path: Option[string] = none(string)
+  var cmd: Option[string] = none(string)
+
+  while not isEmpty():
+    cleanUp()
+
+    if isEmpty():
+      logError("unexpected end of file while parsing panel")
+    
+    bot = cursor
+
+    if content[cursor] == '}':
+      break
+
+    let symbol = parseSymbol()
+
+    if symbol.isNone:
+      logError(&"was expecting symbol 'path' or 'cmd' but got unexpected character '{content[cursor]}'")
+
+    case symbol.get():
+      of "path":
+        path = some(parseStringProperty())
+      of "cmd":
+        cmd = some(parseStringProperty())
+      else:
+        logError(&"was expecting symbol 'path' or 'cmd' but got unexpected character '{symbol.get()}'")
+
+  incCursor()
+
+  Panel(kind: PanelKind.single, path: path, cmd: cmd)
+
+
+proc parsePanels(): Panel =
+  var panel: Option[Panel] = none(Panel)
+
+  while not isEmpty():
+    cleanUp()
+
+    if isEmpty():
+      logError("unexpected end of file while parsing panel")
+
+    if content[cursor] == '}':
+      break
+  
+    bot = cursor
+
+    let symbol = parseSymbol()
+
+    if symbol.isNone:
+      logError(&"was expecting symbol 'panel', 'vpanel' or 'hpanel' but got unexpected character '{content[cursor]}'")
+    
+    case symbol.get():
+      of "panel":
+        panel = some(parsePanelProperty())
+      of "vpanel":
+        panel = some(parseVpanelProperty())
+      of "hpanel":
+        panel = some(parseHpanelProperty())
+      else:
+        logError(&"was expecting symbol 'panel', 'vpanel' or 'hpanel' but got unexpected character '{content[cursor]}'")
+
+  if panel.isNone:
+    return Panel(kind: PanelKind.single)
+
+  panel.get()
+
 
 proc parseWindow(): Window =
   cleanUp()
@@ -203,10 +290,6 @@ proc parseWindow(): Window =
     logError("unexpected end of file while parsing window")
   
   var name: Option[string] = none(string)
-  var path: Option[string] = none(string)
-  var cmd: Option[string] = none(string)
-  var vpanel: Option[Panel] = none(Panel)
-  var hpanel: Option[Panel] = none(Panel)
 
   while not isEmpty():
     cleanUp()
@@ -227,46 +310,21 @@ proc parseWindow(): Window =
     case symbol.get():
       of "name":
         let value = parseStringProperty()
-        name = some(value)
 
         if value.contains(".") or value.contains(":"):
           logError(&"window name '{value}' cannot contain '.' or ':' characters")
-      of "path":
-        path = some(parseStringProperty())
-      of "cmd":
-        cmd = some(parseStringProperty())
-      of "vpanel":
-        if path.isSome or cmd.isSome:
-          logError("you cannot define a vertical panel and a single panel at the same time in the same window")
-        elif hpanel.isSome:
-          logError("you cannot define a vertical panel and a horizontal panel at the same time in the same window")
-        
-        vpanel = some(parseVpanelProperty())
-      of "hpanel":
-        if path.isSome or cmd.isSome:
-          logError("you cannot define a vertical panel and a single panel at the same time in the same window")
-        elif vpanel.isSome:
-          logError("you cannot define a horizontal panel and a vertical panel at the same time in the same window")
-        
-        hpanel = some(parseHpanelProperty())
+
+        name = some(value)
+
+        break
       else:
-        logError(&"was expecting symbol 'name', 'path' or 'cmd' but got unexpected symbol '{symbol.get()}'")
+        break
+
+  let panel = parsePanels()
 
   incCursor()
 
-  var panel: Panel =
-    if vpanel.isSome:
-      vpanel.get()
-    elif hpanel.isSome:
-      hpanel.get()
-    else:
-      Panel(
-        kind: PanelKind.single,
-        path: path,
-        cmd: cmd
-      )
-
-  return Window(name: name, panel: panel)
+  Window(name: name, panel: panel)
 
 proc parseSession() =
   cleanUp()
