@@ -58,9 +58,27 @@ session {
   }
 
   window {
+    name = "Vertical Empty Left and Right"
+
+    vpanel {
+      left {}
+      right {}
+    }
+  }
+
+  window {
     name = "Horizontal Empty Split"
 
     hpanel {}
+  }
+
+  window {
+    name = "Horizontal Empty Top and Bottom"
+
+    hpanel {
+      top {}
+      bottom {}
+    }
   }
 }
 

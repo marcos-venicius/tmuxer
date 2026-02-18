@@ -2,6 +2,8 @@ import std/[options, strformat, strutils, terminal, os]
 
 import types
 
+proc parsePanels(parseProlog: bool): Panel
+
 var sessions: seq[Session] = @[]
 
 var configFileNamePath: string = ""
@@ -151,16 +153,15 @@ proc parseVpanelProperty(): Panel =
     
     case symbol.get():
       of "left":
-        discard
+        left = parsePanels(true)
       of "right":
-        discard
+        right = parsePanels(true)
       else:
-        logError(&"was expecting symbol 'left' or 'right' but got unexpected character '{symbol.get()}'")
+        logError(&"was expecting symbol 'left' or 'right' but got unexpected '{symbol.get()}'")
 
+    incCursor()
 
-  incCursor()
-  
-  return Panel(
+  Panel(
     kind: PanelKind.vertical,
     left: left,
     right: right
@@ -195,9 +196,22 @@ proc parseHpanelProperty(): Panel =
     if content[cursor] == '}':
       break
 
-  incCursor()
-  
-  return Panel(
+    let symbol = parseSymbol()
+
+    if symbol.isNone:
+      logError(&"was expecting symbol 'top' or 'bottom' but got unexpected character '{content[cursor]}'")
+    
+    case symbol.get():
+      of "top":
+        top = parsePanels(true)
+      of "bottom":
+        bottom = parsePanels(true)
+      else:
+        logError(&"was expecting symbol 'top' or 'bottom' but got unexpected '{symbol.get()}'")
+
+    incCursor()
+
+  Panel(
     kind: PanelKind.horizontal,
     top: top,
     bottom: bottom
@@ -237,12 +251,22 @@ proc parsePanelProperty(): Panel =
       else:
         logError(&"was expecting symbol 'path' or 'cmd' but got unexpected character '{symbol.get()}'")
 
-  incCursor()
-
   Panel(kind: PanelKind.single, path: path, cmd: cmd)
 
 
-proc parsePanels(): Panel =
+proc parsePanels(parseProlog: bool): Panel =
+  if parseProlog:
+    cleanUp()
+
+    expectChar(content[cursor], '{')
+
+    incCursor()
+
+    cleanUp()
+
+    if isEmpty():
+      logError("unexpected end of file while parsing panels")
+
   var panel: Option[Panel] = none(Panel)
 
   while not isEmpty():
@@ -269,7 +293,9 @@ proc parsePanels(): Panel =
       of "hpanel":
         panel = some(parseHpanelProperty())
       else:
-        logError(&"was expecting symbol 'panel', 'vpanel' or 'hpanel' but got unexpected character '{content[cursor]}'")
+        logError(&"was expecting symbol 'panel', 'vpanel' or 'hpanel' but got unexpected '{content[cursor]}'")
+
+    incCursor()
 
   if panel.isNone:
     return Panel(kind: PanelKind.single)
@@ -320,7 +346,7 @@ proc parseWindow(): Window =
       else:
         break
 
-  let panel = parsePanels()
+  let panel = parsePanels(false)
 
   incCursor()
 
