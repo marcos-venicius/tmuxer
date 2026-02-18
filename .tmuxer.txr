@@ -1,3 +1,5 @@
+# It's a fake example file. It'll not work on your machine. If you want to make exactly this work, you'll need to create those paths and have vi installed
+
 session {
   name = "network"
 
