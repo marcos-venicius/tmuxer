@@ -2,6 +2,8 @@
 
 This is a tool that setups your tmux configuration to your daily work.
 
+<img width="705" height="415" alt="image" src="https://github.com/user-attachments/assets/77950844-261b-4b5b-86fd-60c3091607a7" />
+
 ```
 Usage: ./tmuxer [options] <action>
 Actions:
@@ -23,25 +25,46 @@ If the file is found, than it's used to construct or destruct your tmux setup.
 The syntax is pretty simple:
 
 ```conf
-# defines a session
-session {}
-
-# a session can have a name
 session {
-  name = "work-folders"
-}
+  name = "tmuxer project"
 
-session {
-  name = "work-folders"
-
-  # defines a window
-  window {}
-
-  # a window can have "name", "path" and "cmd"
   window {
-    name = ""
-    path = "~/path/to/my/folder"
-    cmd = "arbitrary command to run in that window after being inside the path above"
+    name = "tmuxer development"
+
+    vpanel {
+      left {
+        hpanel {
+          top {
+            panel {
+              path = "~/tools/tmuxer/src"
+              cmd = "vi ."
+            }
+          }
+          bottom {
+            panel {
+              path = "~/tools/tmuxer"
+              cmd = "nimble build"
+            }
+          }
+        }
+      }
+
+      right {
+        panel {
+          path = "~/tools/tmuxer/examples"
+          cmd = "../bin/tmuxer -h"
+        }
+      }
+    }
+  }
+
+  window {
+    name = "resources monitoring"
+
+    panel {
+      path = "~/tools/tmuxer"
+      cmd = "btop"
+    }
   }
 }
 ```
