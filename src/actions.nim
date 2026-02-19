@@ -63,6 +63,72 @@ proc viewAction*(sessions: seq[Session]) =
       # Print the Panel Tree starting from the window's root panel
       viewPanel(window.panel, "  " & pipe, true)
 
+proc setupPanel(panel: Panel, sessionName: string, windowName: string) =
+  if panel == nil: return
+
+  var result: int = 0
+
+  case panel.kind:
+    of PanelKind.single:
+      if panel.path.isSome:
+        result = sendKeys(&"cd {panel.path.get()}")
+
+        if result != 0:
+          echo &"""Failed to set path for window {windowName} in session {sessionName} with exit code {result}"""
+          return
+
+      result = sendKeys("clear")
+
+      if result != 0:
+        echo &"""Failed to clear terminal for window {windowName} in session {sessionName} with exit code {result}"""
+        return
+
+      result = clearHistory(sessionName, windowName)
+
+      if result != 0:
+        echo &"""Failed to clear history for window {windowName} in session {sessionName} with exit code {result}"""
+        return
+
+      if panel.cmd.isSome:
+        result = sendKeys(panel.cmd.get())
+
+        if result != 0:
+          echo &"""Failed to set cmd for window {windowName} in session {sessionName} with exit code {result}"""
+          return
+    of PanelKind.vertical:
+      result = splitHorizontally()
+
+      if result != 0:
+        echo &"""Failed to split window {windowName} vertically in session {sessionName} with exit code {result}"""
+        return
+
+      setupPanel(panel.right, sessionName, windowName)
+
+      result = selectsNewlyCreatedRightPanel()
+
+      if result != 0:
+        echo &"""Failed to select right panel for window {windowName} in session {sessionName} with exit code {result}"""
+        return
+
+      setupPanel(panel.left, sessionName, windowName)
+    of PanelKind.horizontal:
+      result = splitVertically()
+
+      if result != 0:
+        echo &"""Failed to split window {windowName} horizontally in session {sessionName} with exit code {result}"""
+        return
+
+      setupPanel(panel.bottom, sessionName, windowName)
+
+      result = selectsNewlyCreatedBottomPanel()
+
+      if result != 0:
+        echo &"""Failed to select bottom panel for window {windowName} in session {sessionName} with exit code {result}"""
+        return
+
+      setupPanel(panel.top, sessionName, windowName)
+
+
 proc upAction*(sessions: seq[Session]) =
   for i, session in sessions.pairs:
     let sessionName = getSessionName(session, i)
@@ -94,39 +160,13 @@ proc upAction*(sessions: seq[Session]) =
           echo &"""Failed to create window {windowName} in session {sessionName} with exit code {result}"""
           continue
       
-      case window.panel.kind:
-        of PanelKind.single: # extract this code to a proc
-          if window.panel.path.isSome:
-            result = sendKeys(sessionName, windowName, &"cd {window.panel.path.get()}")
+      result = selectsWindow(sessionName, windowName)
 
-            if result != 0:
-              echo &"""Failed to set path for window {windowName} in session {sessionName} with exit code {result}"""
-              continue
+      if result != 0:
+        echo &"""Failed to select window {windowName} in session {sessionName} with exit code {result}"""
+        continue
 
-          if window.panel.cmd.isSome:
-            result = sendKeys(sessionName, windowName, window.panel.cmd.get())
-
-            if result != 0:
-              echo &"""Failed to set cmd for window {windowName} in session {sessionName} with exit code {result}"""
-              continue
-
-          result = sendKeys(sessionName, windowName, "clear")
-
-          if result != 0:
-            echo &"""Failed to clear terminal for window {windowName} in session {sessionName} with exit code {result}"""
-            continue
-
-          result = clearHistory(sessionName, windowName)
-
-          if result != 0:
-            echo &"""Failed to clear history for window {windowName} in session {sessionName} with exit code {result}"""
-            continue
-        of PanelKind.vertical:
-          echo "not implemented creation for vertical panel yet"
-          quit(1)
-        of PanelKind.horizontal:
-          echo "not implemented creation for horizontal panel yet"
-          quit(1)
+      setupPanel(window.panel, sessionName, windowName)
 
 proc downAction*(sessions: seq[Session]) =
   for i, session in sessions.pairs:
