@@ -77,29 +77,34 @@ proc setupPanel(panel: Panel, sessionName: string, windowName: string) =
 
   var result: int = 0
 
+  var tmux = Tmux()
+
+  tmux.setSessionName(sessionName)
+  tmux.setWindowName(windowName)
+
   case panel.kind:
     of PanelKind.single:
       if panel.path.isSome:
-        result = sendKeys(&"cd {panel.path.get()}")
+        result = tmux.sendKeys(&"cd {panel.path.get()}")
 
         if result != 0:
           echo &"""Failed to set path for window {windowName} in session {sessionName} with exit code {result}"""
           return
 
-      result = sendKeys("clear")
+      result = tmux.sendKeys("clear")
 
       if result != 0:
         echo &"""Failed to clear terminal for window {windowName} in session {sessionName} with exit code {result}"""
         return
 
-      result = clearHistory(sessionName, windowName)
+      result = tmux.clearHistory()
 
       if result != 0:
         echo &"""Failed to clear history for window {windowName} in session {sessionName} with exit code {result}"""
         return
 
       if panel.cmd.isSome:
-        result = sendKeys(panel.cmd.get())
+        result = tmux.sendKeys(panel.cmd.get())
 
         if result != 0:
           echo &"""Failed to set cmd for window {windowName} in session {sessionName} with exit code {result}"""
@@ -142,9 +147,13 @@ proc upAction*(sessions: seq[Session]) =
   for i, session in sessions.pairs:
     let sessionName = getSessionName(session, i)
 
+    var tmux = Tmux()
+
+    tmux.setSessionName(sessionName)
+
     echo &"""Creating session: {sessionName}"""
 
-    var result = newSession(sessionName)
+    var result = tmux.newSession()
 
     if result != 0:
       echo &"""Failed to create session {sessionName} with exit code {result}"""
@@ -156,20 +165,23 @@ proc upAction*(sessions: seq[Session]) =
       echo &"""  Creating window: {windowName}"""
 
       if j == 0:
+        tmux.setWindowName("0")
+
         # the first window is created by default with the session, so we just need to rename it
-        result = renameWindow(sessionName, "0", windowName)
+        result = tmux.renameWindow(windowName)
 
         if result != 0:
           echo &"""Failed to rename default window to {windowName} in session {sessionName} with exit code {result}"""
           continue
       else:
-        result = newWindow(sessionName, windowName)
+        tmux.setWindowName(windowName)
+        result = tmux.newWindow()
 
         if result != 0:
           echo &"""Failed to create window {windowName} in session {sessionName} with exit code {result}"""
           continue
       
-      result = selectsWindow(sessionName, windowName)
+      result = tmux.selectsWindow()
 
       if result != 0:
         echo &"""Failed to select window {windowName} in session {sessionName} with exit code {result}"""
@@ -181,9 +193,13 @@ proc downAction*(sessions: seq[Session]) =
   for i, session in sessions.pairs:
     let sessionName = getSessionName(session, i)
 
+    var tmux = Tmux()
+
+    tmux.setSessionName(sessionName)
+
     echo &"""Killing session: {sessionName}"""
 
-    let result = killSession(sessionName)
+    let result = tmux.killSession()
 
     if result != 0:
       echo &"""Failed to kill session {sessionName} with exit code {result}"""

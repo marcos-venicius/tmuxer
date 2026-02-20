@@ -1,25 +1,48 @@
-import os, std/strformat
+import std/[os, options, strformat]
 
-proc newSession*(sessionName: string): int =
-  execShellCmd(&""" tmux new-session -d -s "{sessionName}" """)
+type
+  Tmux* = object
+    session: Option[string] = none(string)
+    window: Option[string] = none(string)
 
-proc newWindow*(sessionName: string, windowName: string): int =
-  execShellCmd(&""" tmux new-window -t "{sessionName}" -n "{windowName}" """)
+proc getSessionName(tmux: Tmux): string =
+  if tmux.session.isSome:
+    tmux.session.get()
+  else:
+    raise newException(ValueError, "no session selected")
 
-proc renameWindow*(sessionName: string, oldWindowName: string, newWindowName: string): int =
-  execShellCmd(&""" tmux rename-window -t "{sessionName}:{oldWindowName}" "{newWindowName}" """)
+proc getWindowName(tmux: Tmux): string =
+  if tmux.window.isSome:
+    tmux.window.get()
+  else:
+    raise newException(ValueError, "no window selected")
 
-proc sendKeys*(sessionName: string, windowName: string, keys: string, panelIndex: int = 0): int =
-  execShellCmd(&""" tmux send-keys -t "{sessionName}:{windowName}.{panelIndex}" '{keys}' C-m """)
+proc setSessionName*(tmux: var Tmux, name: string) =
+  tmux.session = some(name)
 
-proc sendKeys*(keys: string): int =
-  execShellCmd(&""" tmux send-keys '{keys}' C-m """)
+proc setWindowName*(tmux: var Tmux, name: string) =
+  tmux.window = some(name)
 
-proc clearHistory*(sessionName: string, windowName: string, panelIndex: int = 0): int =
-  execShellCmd(&""" tmux clear-history -t "{sessionName}:{windowName}.{panelIndex}" """)
+proc newSession*(tmux: var Tmux): int =
+  execShellCmd(&""" tmux new-session -d -s "{tmux.getSessionName()}" """)
 
-proc killSession*(sessionName: string): int =
-  execShellCmd(&""" tmux kill-session -t "{sessionName}" """)
+proc newWindow*(tmux: var Tmux): int =
+  execShellCmd(&""" tmux new-window -t "{tmux.getSessionName()}" -n "{tmux.getWindowName()}" """)
+
+proc renameWindow*(tmux: var Tmux, newWindowName: string): int =
+  execShellCmd(&""" tmux rename-window -t "{tmux.getSessionName()}:{tmux.getWindowName()}" "{newWindowName}" """)
+
+proc sendKeys*(tmux: var Tmux, keys: string, useCurrentSelectedSessionAndWindow: bool = false): int =
+  if useCurrentSelectedSessionAndWindow:
+    execShellCmd(&""" tmux send-keys -t "{tmux.getSessionName()}:{tmux.getWindowName()}.0" '{keys}' C-m """)
+  else:
+    execShellCmd(&""" tmux send-keys '{keys}' C-m """)
+
+proc clearHistory*(tmux: var Tmux): int =
+  execShellCmd(&""" tmux clear-history -t "{tmux.getSessionName()}:{tmux.getWindowName()}.0" """)
+
+proc killSession*(tmux: var Tmux): int =
+  execShellCmd(&""" tmux kill-session -t "{tmux.getSessionName()}" """)
 
 proc splitHorizontally*(): int =
   execShellCmd("tmux split-window -h")
@@ -33,5 +56,5 @@ proc selectsNewlyCreatedRightPanel*(): int =
 proc selectsNewlyCreatedBottomPanel*(): int =
   execShellCmd("tmux select-pane -D")
 
-proc selectsWindow*(sessionName: string, windowName: string): int =
-  execShellCmd(&""" tmux select-window -t "{sessionName}:{windowName}" """)
+proc selectsWindow*(tmux: var Tmux): int =
+  execShellCmd(&""" tmux select-window -t "{tmux.getSessionName()}:{tmux.getWindowName()}" """)
