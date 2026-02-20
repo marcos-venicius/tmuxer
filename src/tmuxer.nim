@@ -11,6 +11,8 @@ const NimblePkgVersion {.strdefine.} = "0.0.0"
 
 let programName = shift().get()
 var action: Option[string] = none(string)
+var enableHints = false
+var enableInfos = true
 
 proc showHelp(withError: bool) =
   stderr.writeLine(&"Usage: {programName} [options] <action>")
@@ -21,6 +23,8 @@ proc showHelp(withError: bool) =
   stderr.writeLine("Options:")
   stderr.writeLine("  -h, --help      - Show this help message")
   stderr.writeLine("  -v, --version   - Show current app version")
+  stderr.writeLine("  --enable-hints  - Show helpful hints while parsing config files")
+  stderr.writeLine("  --disable-infos - Disable informational messages while parsing config files")
   quit(if withError: 1 else: 0)
 
 while true:
@@ -34,6 +38,10 @@ while true:
   case value:
     of "--help", "-h":
       showHelp(false)
+    of "--enable-hints":
+      enableHints = true
+    of "--disable-infos":
+      enableInfos = false
     of "--version", "-v":
       echo NimblePkgVersion
       quit(0)
@@ -55,7 +63,7 @@ if configFilePath.isNone:
   stderr.writeLine("no config file found. expected a .tmuxer.txr file in the current directory or any parent directory")
   quit(1)
 
-let sessions = parseConfigFile(configFilePath.get())
+let sessions = parseConfigFile(configFilePath.get(), enableHints, enableInfos)
 
 case action.get():
   of "up":

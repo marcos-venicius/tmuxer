@@ -3,13 +3,13 @@ import tmux
 import types
 
 proc getSessionName(session: Session, index: int): string =
-  return session.name.get(&"unamed-{index}")
+  session.name.get(&"unamed-{index}")
 
 proc getWindowName(window: Window, index: int): string =
-  return window.name.get(&"unamed-{index}")
+  window.name.get(&"unamed-{index}")
 
 # Helper to draw the panel tree recursively
-proc viewPanel(panel: Panel, prefix: string, isLast: bool) =
+proc viewPanel(panel: Panel, prefix: string, isLast: bool, wrapper: string) =
   if panel == nil: return
 
   # 1. Determine the branch characters
@@ -20,27 +20,36 @@ proc viewPanel(panel: Panel, prefix: string, isLast: bool) =
   stdout.write(&"{prefix}{connector}")
   case panel.kind:
     of PanelKind.single:
-      styledWriteLine(stdout, fgCyan, "Panel", resetStyle)
+      if wrapper != "":
+        styledWriteLine(stdout, fgCyan, &"{wrapper}(Panel)", resetStyle)
+      else:
+        styledWriteLine(stdout, fgCyan, "Panel", resetStyle)
     of PanelKind.vertical:
-      styledWriteLine(stdout, fgYellow, "Vertical Split", resetStyle)
+      if wrapper != "":
+        styledWriteLine(stdout, fgYellow, &"{wrapper}(Vertical Split)", resetStyle)
+      else:
+        styledWriteLine(stdout, fgYellow, "Vertical Split", resetStyle)
     of PanelKind.horizontal:
-      styledWriteLine(stdout, fgMagenta, "Horizontal Split", resetStyle)
+      if wrapper != "":
+        styledWriteLine(stdout, fgMagenta, &"{wrapper}(Horizontal Split)", resetStyle)
+      else:
+        styledWriteLine(stdout, fgMagenta, "Horizontal Split", resetStyle)
 
   # 3. Print Panel details (Path/Cmd)
   let nextPrefix = prefix & childPipe
   if panel.path.isSome:
-    echo &"{nextPrefix}path: {panel.path.get()}"
+    echo &"{nextPrefix}  path: {panel.path.get()}"
   if panel.cmd.isSome:
-    echo &"{nextPrefix}cmd:  {panel.cmd.get()}"
+    echo &"{nextPrefix}  cmd:  {panel.cmd.get()}"
 
   # 4. Recursively visit children
   case panel.kind:
     of PanelKind.vertical:
-      viewPanel(panel.left, nextPrefix, false)
-      viewPanel(panel.right, nextPrefix, true)
+      viewPanel(panel.left, nextPrefix, false, "left")
+      viewPanel(panel.right, nextPrefix, true, "right")
     of PanelKind.horizontal:
-      viewPanel(panel.top, nextPrefix, false)
-      viewPanel(panel.bottom, nextPrefix, true)
+      viewPanel(panel.top, nextPrefix, false, "top")
+      viewPanel(panel.bottom, nextPrefix, true, "bottom")
     of PanelKind.single:
       discard
 
@@ -61,7 +70,7 @@ proc viewAction*(sessions: seq[Session]) =
       styledWriteLine(stdout, fgGreen, getWindowName(window, j), resetStyle)
 
       # Print the Panel Tree starting from the window's root panel
-      viewPanel(window.panel, "  " & pipe, true)
+      viewPanel(window.panel, "  " & pipe, true, "")
 
 proc setupPanel(panel: Panel, sessionName: string, windowName: string) =
   if panel == nil: return

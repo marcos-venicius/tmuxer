@@ -11,4 +11,4 @@ proc shift*(): Option[string] =
 
   argi.inc()
 
-  return some(arg)
+  some(arg)

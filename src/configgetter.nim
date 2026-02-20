@@ -23,4 +23,4 @@ proc getConfigFilePath*(): Option[string] =
     if fileExists(path):
       return some(path)
 
-  return none(string)
+  none(string)

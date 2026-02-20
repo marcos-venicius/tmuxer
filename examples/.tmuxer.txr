@@ -25,20 +25,22 @@ session {
       }
 
       right {
-        panel {
-          path = "~/tools/tmuxer/examples"
-          cmd = "../bin/tmuxer -h"
+        hpanel {
+          top {
+            panel {
+              path = "~/tools/tmuxer/examples"
+              cmd = "vi .tmuxer.txr"
+            }
+          }
+
+          bottom {
+            panel {
+              path = "~/tools/tmuxer/"
+              cmd = "ln -s ./examples/.tmuxer.txr . 2>/dev/null || : && ./bin/tmuxer -v"
+            }
+          }
         }
       }
-    }
-  }
-
-  window {
-    name = "resources monitoring"
-
-    panel {
-      path = "~/tools/tmuxer"
-      cmd = "btop"
     }
   }
 }
