@@ -346,6 +346,9 @@ proc parseWindow(): Window =
       else:
         break
 
+  if name.isNone:
+    cursor = bot
+
   let panel = parsePanels(false)
 
   incCursor()
